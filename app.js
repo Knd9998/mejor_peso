@@ -12,8 +12,8 @@ let db = {
         { id: 4, nombre: "Anual", precio: 450000, duracion: 365 }
     ],
     clases: JSON.parse(localStorage.getItem('cuerpoSano_clases')) || [
-        { id: 1, nombre: "Yoga", horarioInicio: "09:00", horarioFin: "10:00", entrenadorId: 1, entrenadorNombre: "Carlos Ramirez", descripcion: "Relajación y estiramientos", sala: "A", cupos: 15, inscritos: [1] },
-        { id: 2, nombre: "CrossFit", horarioInicio: "18:00", horarioFin: "19:00", entrenadorId: 2, entrenadorNombre: "Laura Fernandez", descripcion: "Alta intensidad", sala: "B", cupos: 2, inscritos: [1, 2] }
+        { id: 1, nombre: "Yoga", horarioInicio: "09:00", horarioFin: "10:00", entrenadorId: 1, entrenadorNombre: "Carlos Ramirez", descripcion: "Relajación y estiramientos", sala: "1", cupos: 15, inscritos: [1] },
+        { id: 2, nombre: "CrossFit", horarioInicio: "18:00", horarioFin: "19:00", entrenadorId: 2, entrenadorNombre: "Laura Fernandez", descripcion: "Alta intensidad", sala: "2", cupos: 2, inscritos: [1, 2] }
     ],
     entrenadores: JSON.parse(localStorage.getItem('cuerpoSano_entrenadores')) || [
         { id: 1, nombre: "Carlos Ramirez", dni: "38475069", fechaNac: "1995-03-10", direccion: "Av. San Juan 3244", telefono: "2456-9578", certificaciones: ["CrossFit L1", "Nutrición Deportiva"] },
@@ -3705,17 +3705,19 @@ function viewClasesDisponibles() {
 
 // Inscribir miembro clase
 function viewInscribirMiembrosClase() {
-    document.getElementById('pageTitle').innerText = "Inscribir Miembros a Clases";
+    document.getElementById('pageTitle').innerText = "Inscribir / Desinscribir Miembros a Clases";
     const container = document.getElementById('dynamicContent');
     
     function actualizarInfoClase() {
         const claseId = document.getElementById('selectClaseInscripcion').value;
         const infoClaseDiv = document.getElementById('infoClaseSeleccionada');
         const miembrosInscriptosDiv = document.getElementById('miembrosInscriptosLista');
+        const inscribirSection = document.getElementById('inscribirSection');
         
         if (!claseId) {
             infoClaseDiv.innerHTML = '<p style="color: #64748b;">Seleccione una clase para ver la información</p>';
             miembrosInscriptosDiv.innerHTML = '';
+            inscribirSection.style.display = 'none';
             return;
         }
         
@@ -3746,16 +3748,25 @@ function viewInscribirMiembrosClase() {
             miembrosInscriptosDiv.innerHTML = `
                 <div style="margin-top: 0.5rem;">
                     <p><strong>Miembros inscriptos:</strong></p>
-                    <ul style="margin: 0.5rem 0; padding-left: 1.5rem;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-top: 0.5rem;">
                         ${clase.inscritos.map(id => {
                             const miembro = db.miembros.find(m => m.id === id);
-                            return `<li>${miembro ? miembro.nombre : 'Desconocido'} (ID: ${id})</li>`;
+                            return `
+                                <div style="background: white; padding: 0.5rem 0.75rem; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #eef2f6;">
+                                    <span>${miembro ? miembro.nombre : 'Desconocido'} (ID: ${id})</span>
+                                    <button class="btn-danger btn-sm" onclick="desinscribirMiembro(${clase.id}, ${id})" style="padding: 0.2rem 0.6rem; font-size: 0.7rem;">
+                                        <i class="fas fa-times"></i> Quitar
+                                    </button>
+                                </div>
+                            `;
                         }).join('')}
-                    </ul>
+                    </div>
                 </div>
             `;
+            inscribirSection.style.display = 'block';
         } else {
             miembrosInscriptosDiv.innerHTML = '<p style="color: #64748b;">No hay miembros inscriptos en esta clase</p>';
+            inscribirSection.style.display = 'block';
         }
         
         const selectMiembro = document.getElementById('selectMiembroInscribir');
@@ -3775,6 +3786,38 @@ function viewInscribirMiembrosClase() {
             }
         }
     }
+    
+    window.desinscribirMiembro = (claseId, miembroId) => {
+        const clase = db.clases.find(c => c.id === parseInt(claseId));
+        const miembro = db.miembros.find(m => m.id === parseInt(miembroId));
+        const mensajeDiv = document.getElementById('inscripcionMsg');
+        
+        if (!clase || !miembro) {
+            showNotification("Clase o miembro no encontrado", true);
+            mensajeDiv.innerHTML = '<p style="color: red;">⚠️ Clase o miembro no encontrado</p>';
+            return;
+        }
+        
+        if (!clase.inscritos || !clase.inscritos.includes(miembro.id)) {
+            showNotification(`El miembro ${miembro.nombre} no está inscripto en esta clase`, true);
+            mensajeDiv.innerHTML = `<p style="color: orange;">⚠️ ${miembro.nombre} no está inscripto en ${clase.nombre}</p>`;
+            return;
+        }
+        
+        if (confirm(`¿Está seguro que desea desinscribir a ${miembro.nombre} de la clase "${clase.nombre}"?`)) {
+            clase.inscritos = clase.inscritos.filter(id => id !== miembro.id);
+            saveDB();
+            
+            showNotification(`✅ ${miembro.nombre} desinscripto exitosamente de ${clase.nombre}`, false);
+            mensajeDiv.innerHTML = `<p style="color: green;">✅ ${miembro.nombre} desinscripto exitosamente de ${clase.nombre}</p>`;
+            
+            actualizarInfoClase();
+            
+            setTimeout(() => {
+                mensajeDiv.innerHTML = '';
+            }, 3000);
+        }
+    };
     
     function inscribirMiembro() {
         const claseId = document.getElementById('selectClaseInscripcion').value;
@@ -3831,7 +3874,7 @@ function viewInscribirMiembrosClase() {
     
     container.innerHTML = `
         <div class="card">
-            <h3><i class="fas fa-user-plus"></i> Inscribir Miembros a Clases</h3>
+            <h3><i class="fas fa-user-plus"></i> Inscribir / Desinscribir Miembros a Clases</h3>
             
             <div class="form-group">
                 <label>Seleccionar Clase:</label>
@@ -3847,7 +3890,7 @@ function viewInscribirMiembrosClase() {
             
             <div id="miembrosInscriptosLista" style="padding: 0.5rem; background: #f0fdf9; border-radius: 12px; margin-bottom: 1rem;"></div>
             
-            <div style="border-top: 1px solid #eef2f6; padding-top: 1rem; margin-top: 0.5rem;">
+            <div id="inscribirSection" style="border-top: 1px solid #eef2f6; padding-top: 1rem; margin-top: 0.5rem; display: none;">
                 <div class="form-group">
                     <label>Seleccionar Miembro a Inscribir:</label>
                     <select id="selectMiembroInscribir">

@@ -16,10 +16,10 @@ let db = {
         { id: 2, nombre: "CrossFit", horarioInicio: "18:00", horarioFin: "19:00", entrenadorId: 2, entrenadorNombre: "Laura Fernandez", descripcion: "Alta intensidad", sala: "2", cupos: 2, inscritos: [1, 2] }
     ],
     entrenadores: JSON.parse(localStorage.getItem('cuerpoSano_entrenadores')) || [
-        { id: 1, nombre: "Carlos Ramirez", dni: "38475069", fechaNac: "1995-03-10", direccion: "Av. San Juan 3244", telefono: "2456-9578", certificaciones: ["CrossFit L1", "Nutrición Deportiva"] },
-        { id: 2, nombre: "Laura Fernandez", dni: "37511685", fechaNac: "1992-07-21", direccion: "Av. Independencia 3200", telefono: "3245-8521", certificaciones: ["Profesora de Yoga", "Meditación Guiada"] },
-        { id: 3, nombre: "Mario Reolla", dni: "28475012", fechaNac: "1987-10-30", direccion: "Chile 520", telefono: "6438-1957", certificaciones: ["Entrenador Físico"] },
-        { id: 4, nombre: "Romina Herrera", dni: "40512466", fechaNac: "1997-03-11", direccion: "Mexico 458", telefono: "6452-8565", certificaciones: ["Profesora de Pilates"] }
+        { id: 1, nombre: "Carlos Ramirez", dni: "38475069", fechaNac: "1995-03-10", direccion: "Av. San Juan 3244", telefono: "2456-9578", certificaciones: ["CrossFit L1", "Nutrición Deportiva"], certificados: [] },
+        { id: 2, nombre: "Laura Fernandez", dni: "37511685", fechaNac: "1992-07-21", direccion: "Av. Independencia 3200", telefono: "3245-8521", certificaciones: ["Profesora de Yoga", "Meditación Guiada"], certificados: []  },
+        { id: 3, nombre: "Mario Reolla", dni: "28475012", fechaNac: "1987-10-30", direccion: "Chile 520", telefono: "6438-1957", certificaciones: ["Entrenador Físico"], certificados: []  },
+        { id: 4, nombre: "Romina Herrera", dni: "40512466", fechaNac: "1997-03-11", direccion: "Mexico 458", telefono: "6452-8565", certificaciones: ["Profesora de Pilates"], certificados: []  }
     ],
     pagos: JSON.parse(localStorage.getItem('cuerpoSano_pagos')) || [
         { id: 1, miembroId: 1, monto: 50000, fecha: "2025-04-01", medioPago: "Efectivo", tipoMembresia: "Mensual" },
@@ -4040,7 +4040,8 @@ function viewRegistrarEntrenador() {
     document.getElementById('pageTitle').innerText = "Registrar Nuevo Entrenador";
     const container = document.getElementById('dynamicContent');
     
-    certificacionesTemp = [];
+    let certificacionesTemp = [];
+    let certificadosTemp = [];
     
     function actualizarListaCertificaciones() {
         const listaDiv = document.getElementById('listaCertificaciones');
@@ -4060,10 +4061,74 @@ function viewRegistrarEntrenador() {
                         const idx = parseInt(btn.getAttribute('data-idx'));
                         certificacionesTemp.splice(idx, 1);
                         actualizarListaCertificaciones();
+                        actualizarEstadoValidacion();
                     });
                 });
             }
         }
+        actualizarEstadoValidacion();
+    }
+    
+    function actualizarListaCertificados() {
+        const listaDiv = document.getElementById('listaCertificados');
+        if (listaDiv) {
+            if (certificadosTemp.length === 0) {
+                listaDiv.innerHTML = '<span style="color: #94a3b8; font-size: 0.8rem;">No hay certificados PDF subidos</span>';
+            } else {
+                listaDiv.innerHTML = certificadosTemp.map((cert, idx) => `
+                    <span style="background: #f0fdf9; padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.8rem; display: inline-flex; align-items: center; gap: 0.5rem; border: 1px solid #227c6c;">
+                        <i class="fas fa-file-pdf" style="color: #dc2626;"></i>
+                        ${cert.nombre}
+                        <a href="${cert.data}" target="_blank" style="color: #227c6c; text-decoration: none; font-size: 0.7rem;">
+                            <i class="fas fa-eye"></i> Ver
+                        </a>
+                        <button type="button" class="btn-remove-cert-pdf" data-idx="${idx}" style="background: none; border: none; color: #ef4444; cursor: pointer; padding: 0; margin: 0;">&times;</button>
+                    </span>
+                `).join('');
+                
+                document.querySelectorAll('.btn-remove-cert-pdf').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const idx = parseInt(btn.getAttribute('data-idx'));
+                        certificadosTemp.splice(idx, 1);
+                        actualizarListaCertificados();
+                        actualizarEstadoValidacion();
+                    });
+                });
+            }
+        }
+        actualizarEstadoValidacion();
+    }
+    
+    function actualizarEstadoValidacion() {
+        const mensajeValidacion = document.getElementById('validacionCertificadosMsg');
+        const guardarBtn = document.getElementById('guardarEntrenadorBtn');
+        const certificacionesCount = certificacionesTemp.length;
+        const certificadosCount = certificadosTemp.length;
+        
+        if (certificacionesCount === 0) {
+            mensajeValidacion.innerHTML = '<p style="color: orange;">⚠️ Debe agregar al menos una certificación</p>';
+            mensajeValidacion.style.display = 'block';
+            guardarBtn.disabled = true;
+            return;
+        }
+        
+        if (certificadosCount === 0) {
+            mensajeValidacion.innerHTML = '<p style="color: orange;">⚠️ Debe subir al menos un certificado PDF</p>';
+            mensajeValidacion.style.display = 'block';
+            guardarBtn.disabled = true;
+            return;
+        }
+        
+        if (certificacionesCount !== certificadosCount) {
+            mensajeValidacion.innerHTML = `<p style="color: orange;">⚠️ La cantidad de certificaciones (${certificacionesCount}) no coincide con la cantidad de PDFs subidos (${certificadosCount})</p>`;
+            mensajeValidacion.style.display = 'block';
+            guardarBtn.disabled = true;
+            return;
+        }
+        
+        mensajeValidacion.innerHTML = `<p style="color: green;">✅ ${certificacionesCount} certificaciones con sus respectivos PDFs</p>`;
+        mensajeValidacion.style.display = 'block';
+        guardarBtn.disabled = false;
     }
     
     container.innerHTML = `
@@ -4094,17 +4159,32 @@ function viewRegistrarEntrenador() {
                     <label>Dirección *</label>
                     <input type="text" id="entrenadorDireccion" placeholder="Dirección completa">
                 </div>
-                <div class="form-group">
-                    <label>Certificaciones</label>
-                    <div style="display: flex; gap: 0.5rem;">
-                        <input type="text" id="entrenadorCertificacion" placeholder="Ej: CrossFit L1" style="flex: 1;">
-                        <button type="button" id="agregarCertificacionBtn" class="btn-info btn-sm">+ Agregar</button>
-                    </div>
-                    <div id="listaCertificaciones" style="margin-top: 0.5rem; display: flex; flex-wrap: wrap; gap: 0.5rem;"></div>
-                </div>
             </div>
+            
+            <div class="form-group">
+                <label>Certificaciones (texto) *</label>
+                <p style="font-size: 0.8rem; color: #64748b;">Cada certificación debe tener su respectivo PDF</p>
+                <div style="display: flex; gap: 0.5rem;">
+                    <input type="text" id="entrenadorCertificacion" placeholder="Ej: CrossFit L1" style="flex: 1;">
+                    <button type="button" id="agregarCertificacionBtn" class="btn-info btn-sm">+ Agregar</button>
+                </div>
+                <div id="listaCertificaciones" style="margin-top: 0.5rem; display: flex; flex-wrap: wrap; gap: 0.5rem;"></div>
+            </div>
+            
+            <div class="form-group">
+                <label>Certificados PDF *</label>
+                <p style="font-size: 0.8rem; color: #64748b;">Debe subir un PDF por cada certificación</p>
+                <div style="display: flex; gap: 0.5rem; align-items: center;">
+                    <input type="file" id="certificadoPdfInput" accept=".pdf" style="flex: 1;">
+                    <button type="button" id="agregarCertificadoBtn" class="btn-info btn-sm">+ Subir PDF</button>
+                </div>
+                <div id="listaCertificados" style="margin-top: 0.5rem; display: flex; flex-wrap: wrap; gap: 0.5rem;"></div>
+            </div>
+            
+            <div id="validacionCertificadosMsg" style="margin-top: 0.5rem; padding: 0.5rem; border-radius: 8px; display: none;"></div>
+            
             <div style="display: flex; gap: 0.5rem;">
-                <button id="guardarEntrenadorBtn" class="btn-success">Guardar</button>
+                <button id="guardarEntrenadorBtn" class="btn-success" disabled>Guardar</button>
                 <button id="cancelarEntrenadorBtn" class="btn-secondary">Cancelar</button>
             </div>
             <div id="registroEntrenadorMsg" style="margin-top: 0.5rem;"></div>
@@ -4115,9 +4195,48 @@ function viewRegistrarEntrenador() {
         const input = document.getElementById('entrenadorCertificacion');
         const cert = input.value.trim();
         if (cert) {
+            if (certificacionesTemp.includes(cert)) {
+                showNotification(`La certificación "${cert}" ya está agregada`, true);
+                return;
+            }
             certificacionesTemp.push(cert);
             actualizarListaCertificaciones();
             input.value = '';
+            actualizarEstadoValidacion();
+        } else {
+            showNotification("Por favor, ingrese el nombre de la certificación", true);
+        }
+    };
+    
+    document.getElementById('agregarCertificadoBtn').onclick = () => {
+        const input = document.getElementById('certificadoPdfInput');
+        const file = input.files[0];
+        if (file) {
+            if (file.type !== 'application/pdf') {
+                showNotification("Por favor, seleccione un archivo PDF válido", true);
+                return;
+            }
+            
+            if (file.size > 5 * 1024 * 1024) {
+                showNotification("El archivo no puede superar los 5MB", true);
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                certificadosTemp.push({
+                    nombre: file.name,
+                    data: event.target.result,
+                    size: file.size
+                });
+                actualizarListaCertificados();
+                input.value = '';
+                showNotification(`PDF "${file.name}" subido correctamente`, false);
+                actualizarEstadoValidacion();
+            };
+            reader.readAsDataURL(file);
+        } else {
+            showNotification("Por favor, seleccione un archivo PDF", true);
         }
     };
     
@@ -4127,12 +4246,29 @@ function viewRegistrarEntrenador() {
         const fechaNac = document.getElementById('entrenadorFechaNac').value;
         const telefono = document.getElementById('entrenadorTelefono').value.trim();
         const direccion = document.getElementById('entrenadorDireccion').value.trim();
+        const registroMsg = document.getElementById('registroEntrenadorMsg');
         
-        if (!nombre) { showNotification("Por favor, completar el campo Nombre y Apellido", true); return; }
-        if (!dni) { showNotification("Por favor, completar el campo DNI", true); return; }
-        if (!fechaNac) { showNotification("Por favor, completar el campo Fecha de Nacimiento", true); return; }
-        if (!telefono) { showNotification("Por favor, completar el campo Teléfono", true); return; }
-        if (!direccion) { showNotification("Por favor, completar el campo Dirección", true); return; }
+        if (!nombre) { showNotification("Por favor, completar el campo Nombre y Apellido", true); registroMsg.innerHTML = '<p style="color: red;">⚠️ Por favor, completar el campo Nombre y Apellido</p>'; return; }
+        if (!dni) { showNotification("Por favor, completar el campo DNI", true); registroMsg.innerHTML = '<p style="color: red;">⚠️ Por favor, completar el campo DNI</p>'; return; }
+        if (!fechaNac) { showNotification("Por favor, completar el campo Fecha de Nacimiento", true); registroMsg.innerHTML = '<p style="color: red;">⚠️ Por favor, completar el campo Fecha de Nacimiento</p>'; return; }
+        if (!telefono) { showNotification("Por favor, completar el campo Teléfono", true); registroMsg.innerHTML = '<p style="color: red;">⚠️ Por favor, completar el campo Teléfono</p>'; return; }
+        if (!direccion) { showNotification("Por favor, completar el campo Dirección", true); registroMsg.innerHTML = '<p style="color: red;">⚠️ Por favor, completar el campo Dirección</p>'; return; }
+        
+        if (certificacionesTemp.length === 0) {
+            showNotification("Debe agregar al menos una certificación", true);
+            registroMsg.innerHTML = '<p style="color: red;">⚠️ Debe agregar al menos una certificación</p>';
+            return;
+        }
+        if (certificadosTemp.length === 0) {
+            showNotification("Debe subir al menos un certificado PDF", true);
+            registroMsg.innerHTML = '<p style="color: red;">⚠️ Debe subir al menos un certificado PDF</p>';
+            return;
+        }
+        if (certificacionesTemp.length !== certificadosTemp.length) {
+            showNotification(`La cantidad de certificaciones (${certificacionesTemp.length}) no coincide con los PDFs (${certificadosTemp.length})`, true);
+            registroMsg.innerHTML = `<p style="color: red;">⚠️ La cantidad de certificaciones (${certificacionesTemp.length}) no coincide con los PDFs (${certificadosTemp.length})</p>`;
+            return;
+        }
         
         const newId = db.entrenadores.length + 1;
         const nuevoEntrenador = {
@@ -4142,12 +4278,13 @@ function viewRegistrarEntrenador() {
             fechaNac,
             telefono,
             direccion,
-            certificaciones: [...certificacionesTemp]
+            certificaciones: [...certificacionesTemp],
+            certificados: [...certificadosTemp]
         };
         db.entrenadores.push(nuevoEntrenador);
         saveDB();
         
-        document.getElementById('registroEntrenadorMsg').innerHTML = '<p style="color:green;">✅ Datos guardados correctamente</p>';
+        registroMsg.innerHTML = '<p style="color: green;">✅ Datos guardados correctamente</p>';
         showNotification("Datos guardados correctamente", false);
         
         document.getElementById('entrenadorNombre').value = '';
@@ -4156,11 +4293,15 @@ function viewRegistrarEntrenador() {
         document.getElementById('entrenadorTelefono').value = '';
         document.getElementById('entrenadorDireccion').value = '';
         document.getElementById('entrenadorCertificacion').value = '';
+        document.getElementById('certificadoPdfInput').value = '';
         certificacionesTemp = [];
+        certificadosTemp = [];
         actualizarListaCertificaciones();
+        actualizarListaCertificados();
+        actualizarEstadoValidacion();
         
         setTimeout(() => {
-            document.getElementById('registroEntrenadorMsg').innerHTML = '';
+            registroMsg.innerHTML = '';
         }, 3000);
     };
     
@@ -4171,13 +4312,20 @@ function viewRegistrarEntrenador() {
         document.getElementById('entrenadorTelefono').value = '';
         document.getElementById('entrenadorDireccion').value = '';
         document.getElementById('entrenadorCertificacion').value = '';
+        document.getElementById('certificadoPdfInput').value = '';
         certificacionesTemp = [];
+        certificadosTemp = [];
         actualizarListaCertificaciones();
+        actualizarListaCertificados();
+        actualizarEstadoValidacion();
         document.getElementById('registroEntrenadorMsg').innerHTML = '';
+        document.getElementById('validacionCertificadosMsg').style.display = 'none';
         showNotification("Registro cancelado", false);
     };
     
     actualizarListaCertificaciones();
+    actualizarListaCertificados();
+    actualizarEstadoValidacion();
 }
 
 // Modificar Entrenador
@@ -4185,6 +4333,7 @@ function viewModificarEntrenador() {
     document.getElementById('pageTitle').innerText = "Modificar Entrenador";
     const container = document.getElementById('dynamicContent');
     let certificacionesEditTemp = [];
+    let certificadosEditTemp = [];
     
     function actualizarListaCertificacionesEdit() {
         const listaDiv = document.getElementById('listaCertificacionesEdit');
@@ -4204,10 +4353,74 @@ function viewModificarEntrenador() {
                         const idx = parseInt(btn.getAttribute('data-idx'));
                         certificacionesEditTemp.splice(idx, 1);
                         actualizarListaCertificacionesEdit();
+                        actualizarEstadoValidacionEdit();
                     });
                 });
             }
         }
+        actualizarEstadoValidacionEdit();
+    }
+    
+    function actualizarListaCertificadosEdit() {
+        const listaDiv = document.getElementById('listaCertificadosEdit');
+        if (listaDiv) {
+            if (certificadosEditTemp.length === 0) {
+                listaDiv.innerHTML = '<span style="color: #94a3b8; font-size: 0.8rem;">No hay certificados PDF subidos</span>';
+            } else {
+                listaDiv.innerHTML = certificadosEditTemp.map((cert, idx) => `
+                    <span style="background: #f0fdf9; padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.8rem; display: inline-flex; align-items: center; gap: 0.5rem; border: 1px solid #227c6c;">
+                        <i class="fas fa-file-pdf" style="color: #dc2626;"></i>
+                        ${cert.nombre}
+                        <a href="${cert.data}" target="_blank" style="color: #227c6c; text-decoration: none; font-size: 0.7rem;">
+                            <i class="fas fa-eye"></i> Ver
+                        </a>
+                        <button type="button" class="btn-remove-cert-pdf-edit" data-idx="${idx}" style="background: none; border: none; color: #ef4444; cursor: pointer; padding: 0; margin: 0;">&times;</button>
+                    </span>
+                `).join('');
+                
+                document.querySelectorAll('.btn-remove-cert-pdf-edit').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const idx = parseInt(btn.getAttribute('data-idx'));
+                        certificadosEditTemp.splice(idx, 1);
+                        actualizarListaCertificadosEdit();
+                        actualizarEstadoValidacionEdit();
+                    });
+                });
+            }
+        }
+        actualizarEstadoValidacionEdit();
+    }
+    
+    function actualizarEstadoValidacionEdit() {
+        const mensajeValidacion = document.getElementById('validacionCertificadosEditMsg');
+        const guardarBtn = document.getElementById('guardarModificacionEntrenadorBtn');
+        const certificacionesCount = certificacionesEditTemp.length;
+        const certificadosCount = certificadosEditTemp.length;
+        
+        if (certificacionesCount === 0) {
+            mensajeValidacion.innerHTML = '<p style="color: orange;">⚠️ Debe tener al menos una certificación</p>';
+            mensajeValidacion.style.display = 'block';
+            guardarBtn.disabled = true;
+            return;
+        }
+        
+        if (certificadosCount === 0) {
+            mensajeValidacion.innerHTML = '<p style="color: orange;">⚠️ Debe tener al menos un certificado PDF</p>';
+            mensajeValidacion.style.display = 'block';
+            guardarBtn.disabled = true;
+            return;
+        }
+        
+        if (certificacionesCount !== certificadosCount) {
+            mensajeValidacion.innerHTML = `<p style="color: orange;">⚠️ La cantidad de certificaciones (${certificacionesCount}) no coincide con la cantidad de PDFs subidos (${certificadosCount})</p>`;
+            mensajeValidacion.style.display = 'block';
+            guardarBtn.disabled = true;
+            return;
+        }
+        
+        mensajeValidacion.innerHTML = `<p style="color: green;">✅ ${certificacionesCount} certificaciones con sus respectivos PDFs</p>`;
+        mensajeValidacion.style.display = 'block';
+        guardarBtn.disabled = false;
     }
     
     function cargarDatosEntrenador() {
@@ -4219,7 +4432,10 @@ function viewModificarEntrenador() {
             document.getElementById('editEntrenadorTelefono').value = '';
             document.getElementById('editEntrenadorDireccion').value = '';
             certificacionesEditTemp = [];
+            certificadosEditTemp = [];
             actualizarListaCertificacionesEdit();
+            actualizarListaCertificadosEdit();
+            actualizarEstadoValidacionEdit();
             return;
         }
         const e = db.entrenadores.find(x => x.id === id);
@@ -4230,7 +4446,10 @@ function viewModificarEntrenador() {
             document.getElementById('editEntrenadorTelefono').value = e.telefono;
             document.getElementById('editEntrenadorDireccion').value = e.direccion;
             certificacionesEditTemp = [...(e.certificaciones || [])];
+            certificadosEditTemp = [...(e.certificados || [])];
             actualizarListaCertificacionesEdit();
+            actualizarListaCertificadosEdit();
+            actualizarEstadoValidacionEdit();
         }
     }
     
@@ -4269,17 +4488,32 @@ function viewModificarEntrenador() {
                     <label>Dirección *</label>
                     <input type="text" id="editEntrenadorDireccion" placeholder="Dirección completa">
                 </div>
-                <div class="form-group">
-                    <label>Certificaciones</label>
-                    <div style="display: flex; gap: 0.5rem;">
-                        <input type="text" id="editEntrenadorCertificacion" placeholder="Ej: CrossFit L1" style="flex: 1;">
-                        <button type="button" id="agregarCertificacionEditBtn" class="btn-info btn-sm">+ Agregar</button>
-                    </div>
-                    <div id="listaCertificacionesEdit" style="margin-top: 0.5rem; display: flex; flex-wrap: wrap; gap: 0.5rem;"></div>
-                </div>
             </div>
+            
+            <div class="form-group">
+                <label>Certificaciones (texto) *</label>
+                <p style="font-size: 0.8rem; color: #64748b;">Cada certificación debe tener su respectivo PDF</p>
+                <div style="display: flex; gap: 0.5rem;">
+                    <input type="text" id="editEntrenadorCertificacion" placeholder="Ej: CrossFit L1" style="flex: 1;">
+                    <button type="button" id="agregarCertificacionEditBtn" class="btn-info btn-sm">+ Agregar</button>
+                </div>
+                <div id="listaCertificacionesEdit" style="margin-top: 0.5rem; display: flex; flex-wrap: wrap; gap: 0.5rem;"></div>
+            </div>
+            
+            <div class="form-group">
+                <label>Certificados PDF *</label>
+                <p style="font-size: 0.8rem; color: #64748b;">Debe subir un PDF por cada certificación</p>
+                <div style="display: flex; gap: 0.5rem; align-items: center;">
+                    <input type="file" id="editCertificadoPdfInput" accept=".pdf" style="flex: 1;">
+                    <button type="button" id="agregarCertificadoEditBtn" class="btn-info btn-sm">+ Subir PDF</button>
+                </div>
+                <div id="listaCertificadosEdit" style="margin-top: 0.5rem; display: flex; flex-wrap: wrap; gap: 0.5rem;"></div>
+            </div>
+            
+            <div id="validacionCertificadosEditMsg" style="margin-top: 0.5rem; padding: 0.5rem; border-radius: 8px; display: none;"></div>
+            
             <div style="display: flex; gap: 0.5rem;">
-                <button id="guardarModificacionEntrenadorBtn" class="btn-success">Guardar Cambios</button>
+                <button id="guardarModificacionEntrenadorBtn" class="btn-success" disabled>Guardar Cambios</button>
                 <button id="cancelarModificacionEntrenadorBtn" class="btn-secondary">Cancelar</button>
             </div>
             <div id="modificacionEntrenadorMsg" style="margin-top:1rem;"></div>
@@ -4292,16 +4526,56 @@ function viewModificarEntrenador() {
         const input = document.getElementById('editEntrenadorCertificacion');
         const cert = input.value.trim();
         if (cert) {
+            if (certificacionesEditTemp.includes(cert)) {
+                showNotification(`La certificación "${cert}" ya está agregada`, true);
+                return;
+            }
             certificacionesEditTemp.push(cert);
             actualizarListaCertificacionesEdit();
             input.value = '';
+            actualizarEstadoValidacionEdit();
+        } else {
+            showNotification("Por favor, ingrese el nombre de la certificación", true);
+        }
+    };
+    
+    document.getElementById('agregarCertificadoEditBtn').onclick = () => {
+        const input = document.getElementById('editCertificadoPdfInput');
+        const file = input.files[0];
+        if (file) {
+            if (file.type !== 'application/pdf') {
+                showNotification("Por favor, seleccione un archivo PDF válido", true);
+                return;
+            }
+            if (file.size > 5 * 1024 * 1024) {
+                showNotification("El archivo no puede superar los 5MB", true);
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                certificadosEditTemp.push({
+                    nombre: file.name,
+                    data: event.target.result,
+                    size: file.size
+                });
+                actualizarListaCertificadosEdit();
+                input.value = '';
+                showNotification(`PDF "${file.name}" subido correctamente`, false);
+                actualizarEstadoValidacionEdit();
+            };
+            reader.readAsDataURL(file);
+        } else {
+            showNotification("Por favor, seleccione un archivo PDF", true);
         }
     };
     
     document.getElementById('guardarModificacionEntrenadorBtn').onclick = () => {
         const id = parseInt(document.getElementById('selectEntrenadorModificar').value);
+        const modificacionMsg = document.getElementById('modificacionEntrenadorMsg');
+        
         if (!id) {
             showNotification("Por favor, seleccione un entrenador para modificar", true);
+            modificacionMsg.innerHTML = '<p style="color: red;">⚠️ Por favor, seleccione un entrenador para modificar</p>';
             return;
         }
         
@@ -4311,11 +4585,27 @@ function viewModificarEntrenador() {
         const telefono = document.getElementById('editEntrenadorTelefono').value.trim();
         const direccion = document.getElementById('editEntrenadorDireccion').value.trim();
         
-        if (!nombre) { showNotification("Por favor, completar el campo Nombre y Apellido", true); return; }
-        if (!dni) { showNotification("Por favor, completar el campo DNI", true); return; }
-        if (!fechaNac) { showNotification("Por favor, completar el campo Fecha de Nacimiento", true); return; }
-        if (!telefono) { showNotification("Por favor, completar el campo Teléfono", true); return; }
-        if (!direccion) { showNotification("Por favor, completar el campo Dirección", true); return; }
+        if (!nombre) { showNotification("Por favor, completar el campo Nombre y Apellido", true); modificacionMsg.innerHTML = '<p style="color: red;">⚠️ Por favor, completar el campo Nombre y Apellido</p>'; return; }
+        if (!dni) { showNotification("Por favor, completar el campo DNI", true); modificacionMsg.innerHTML = '<p style="color: red;">⚠️ Por favor, completar el campo DNI</p>'; return; }
+        if (!fechaNac) { showNotification("Por favor, completar el campo Fecha de Nacimiento", true); modificacionMsg.innerHTML = '<p style="color: red;">⚠️ Por favor, completar el campo Fecha de Nacimiento</p>'; return; }
+        if (!telefono) { showNotification("Por favor, completar el campo Teléfono", true); modificacionMsg.innerHTML = '<p style="color: red;">⚠️ Por favor, completar el campo Teléfono</p>'; return; }
+        if (!direccion) { showNotification("Por favor, completar el campo Dirección", true); modificacionMsg.innerHTML = '<p style="color: red;">⚠️ Por favor, completar el campo Dirección</p>'; return; }
+        
+        if (certificacionesEditTemp.length === 0) {
+            showNotification("Debe tener al menos una certificación", true);
+            modificacionMsg.innerHTML = '<p style="color: red;">⚠️ Debe tener al menos una certificación</p>';
+            return;
+        }
+        if (certificadosEditTemp.length === 0) {
+            showNotification("Debe tener al menos un certificado PDF", true);
+            modificacionMsg.innerHTML = '<p style="color: red;">⚠️ Debe tener al menos un certificado PDF</p>';
+            return;
+        }
+        if (certificacionesEditTemp.length !== certificadosEditTemp.length) {
+            showNotification(`La cantidad de certificaciones (${certificacionesEditTemp.length}) no coincide con los PDFs (${certificadosEditTemp.length})`, true);
+            modificacionMsg.innerHTML = `<p style="color: red;">⚠️ La cantidad de certificaciones (${certificacionesEditTemp.length}) no coincide con los PDFs (${certificadosEditTemp.length})</p>`;
+            return;
+        }
         
         const index = db.entrenadores.findIndex(e => e.id === id);
         if (index !== -1) {
@@ -4326,20 +4616,21 @@ function viewModificarEntrenador() {
                 fechaNac,
                 telefono,
                 direccion,
-                certificaciones: [...certificacionesEditTemp]
+                certificaciones: [...certificacionesEditTemp],
+                certificados: [...certificadosEditTemp]
             };
             saveDB();
-            document.getElementById('modificacionEntrenadorMsg').innerHTML = '<p style="color:green;">✅ Modificación realizada correctamente</p>';
+            modificacionMsg.innerHTML = '<p style="color: green;">✅ Modificación realizada correctamente</p>';
             showNotification("Modificación realizada correctamente", false);
             
             const select = document.getElementById('selectEntrenadorModificar');
             select.innerHTML = '<option value="">-- Seleccione un entrenador --</option>' + 
                 db.entrenadores.map(e => `<option value="${e.id}">${e.nombre} (DNI: ${e.dni})</option>`).join('');
+            
+            setTimeout(() => {
+                modificacionMsg.innerHTML = '';
+            }, 3000);
         }
-        
-        setTimeout(() => {
-            document.getElementById('modificacionEntrenadorMsg').innerHTML = '';
-        }, 3000);
     };
     
     document.getElementById('cancelarModificacionEntrenadorBtn').onclick = () => {
@@ -4350,11 +4641,20 @@ function viewModificarEntrenador() {
         document.getElementById('editEntrenadorTelefono').value = '';
         document.getElementById('editEntrenadorDireccion').value = '';
         document.getElementById('editEntrenadorCertificacion').value = '';
+        document.getElementById('editCertificadoPdfInput').value = '';
         certificacionesEditTemp = [];
+        certificadosEditTemp = [];
         actualizarListaCertificacionesEdit();
+        actualizarListaCertificadosEdit();
+        actualizarEstadoValidacionEdit();
         document.getElementById('modificacionEntrenadorMsg').innerHTML = '';
+        document.getElementById('validacionCertificadosEditMsg').style.display = 'none';
         showNotification("Modificación cancelada", false);
     };
+    
+    if (document.getElementById('selectEntrenadorModificar').value) {
+        cargarDatosEntrenador();
+    }
 }
 
 // Consultar Entrenador
@@ -4378,8 +4678,8 @@ function viewConsultarEntrenador() {
         </div>
     `;
     
-    const consultarBtn = document.getElementById('consultarEntrenadorBtn');
     const selectEntrenador = document.getElementById('selectEntrenadorConsultar');
+    const consultarBtn = document.getElementById('consultarEntrenadorBtn');
     const entrenadorDataDiv = document.getElementById('entrenadorData');
     const consultaMsg = document.getElementById('consultaEntrenadorMsg');
     
@@ -4396,6 +4696,28 @@ function viewConsultarEntrenador() {
         const entrenador = db.entrenadores.find(e => e.id === id);
         if (entrenador) {
             const clasesAsignadas = db.clases.filter(c => c.entrenadorId === entrenador.id);
+            
+            let certificadosHTML = '';
+            if (entrenador.certificados && entrenador.certificados.length > 0) {
+                certificadosHTML = `
+                    <div style="margin-top: 0.5rem;">
+                        <p><strong><i class="fas fa-file-pdf"></i> Certificados PDF:</strong></p>
+                        <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                            ${entrenador.certificados.map(cert => `
+                                <div style="background: #f0fdf9; padding: 0.5rem 1rem; border-radius: 8px; border: 1px solid #227c6c; display: flex; align-items: center; gap: 0.5rem;">
+                                    <i class="fas fa-file-pdf" style="color: #dc2626;"></i>
+                                    <span>${cert.nombre}</span>
+                                    <a href="${cert.data}" target="_blank" style="color: #227c6c; text-decoration: none; font-size: 0.8rem;">
+                                        <i class="fas fa-eye"></i> Ver PDF
+                                    </a>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            } else {
+                certificadosHTML = '<p style="color: #64748b; margin-top: 0.5rem;"><i class="fas fa-info-circle"></i> No hay certificados PDF subidos</p>';
+            }
             
             entrenadorDataDiv.innerHTML = `
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
@@ -4419,6 +4741,9 @@ function viewConsultarEntrenador() {
                         </ul>`
                     }
                 </div>
+                <div style="margin-top: 1rem; border-top: 1px solid #eef2f6; padding-top: 1rem;">
+                    ${certificadosHTML}
+                </div>
             `;
             consultaMsg.innerHTML = '<p style="color: green;">✅ Consulta realizada correctamente</p>';
             showNotification(`Mostrando información de ${entrenador.nombre}`, false);
@@ -4433,12 +4758,6 @@ function viewConsultarEntrenador() {
     }
     
     consultarBtn.onclick = consultarEntrenador;
-    
-    selectEntrenador.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-            consultarEntrenador();
-        }
-    });
     
 }
 

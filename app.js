@@ -5715,7 +5715,6 @@ function initMobileMenu() {
     const sidebar = document.getElementById('sidebar');
     const overlay = document.getElementById('sidebarOverlay');
     
-    // Si no existen los elementos, salir
     if (!menuToggle || !sidebar || !overlay) {
         console.log("Elementos del menú móvil no encontrados");
         return;
@@ -5731,7 +5730,6 @@ function initMobileMenu() {
         overlay.classList.add('active');
     }
     
-    // Abrir/cerrar menú al hacer clic en el botón
     menuToggle.onclick = (e) => {
         e.stopPropagation();
         if (sidebar.classList.contains('open')) {
@@ -5741,14 +5739,11 @@ function initMobileMenu() {
         }
     };
     
-    // Cerrar menú al hacer clic en el overlay
     overlay.onclick = () => {
         closeMenu();
     };
     
-    // Cerrar menú al seleccionar una opción (en móvil)
     document.addEventListener('click', (e) => {
-        // Si el menú está abierto y el clic no es dentro del sidebar ni en el botón
         if (sidebar.classList.contains('open')) {
             const isClickInsideSidebar = sidebar.contains(e.target);
             const isClickOnToggle = menuToggle.contains(e.target);
@@ -5759,7 +5754,6 @@ function initMobileMenu() {
         }
     });
     
-    // Cerrar menú al redimensionar a tamaño desktop
     window.addEventListener('resize', () => {
         if (window.innerWidth > 768) {
             closeMenu();
